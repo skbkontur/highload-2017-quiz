@@ -1,4 +1,6 @@
 language: go
 go:
   - 1.9
-script: go test -bench=. -benchtime=5s
+script:
+  - go test -run=XXX -bench=. -benchtime=5s
+  - go test
