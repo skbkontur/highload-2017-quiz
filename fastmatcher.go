@@ -39,7 +39,7 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
-	for _, patternParts := range p.AllowedPatterns {
+	for pattern, patternParts := range p.AllowedPatterns {
 		if len(patternParts) != len(metricParts) {
 			continue
 		}
