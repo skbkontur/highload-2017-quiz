@@ -12,10 +12,12 @@ type Pattern struct {
 }
 
 type Part struct {
-	Part   string
-	Prefix string
-	Sufix  string
-	Or     []string
+	Part      string
+	Prefix    string
+	Sufix     string
+	Or        []string
+	ClearPart string
+	HasStart  bool
 }
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
@@ -56,14 +58,14 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 				ll := len(pparts)
 
 				if strings.Index(pp.Part, "{") != 0 {
-					pp.Prefix = pparts[0]
+					pp.Prefix = strings.Replace(pparts[0], "*", "", -1)
 					pparts = pparts[1:]
 				}
 
 				ll = len(pparts)
 
 				if strings.Index(pp.Part, "}") != ll-1 {
-					pp.Sufix = pparts[ll-1]
+					pp.Sufix = strings.Replace(pparts[ll-1], "*", "", -1)
 					pparts = pparts[:ll-1]
 				}
 
@@ -73,6 +75,9 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 
 				pp.Or = pparts
 			}
+
+			pp.HasStart = strings.Contains(pp.Part, "*")
+			pp.ClearPart = strings.Replace(pp.Part, "*", "", -1)
 
 			p.P[i].Parts = append(p.P[i].Parts, pp)
 
@@ -122,7 +127,7 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 
 			if len(part.Or) > 0 {
 				for _, item := range part.Or {
-					patt := strings.Replace(part.Prefix+item+part.Sufix, "*", "", -1)
+					patt := part.Prefix + item + part.Sufix
 
 					if strings.Contains(metricParts[i], patt) {
 						f = true
@@ -135,9 +140,8 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 				}
 			}
 
-			if strings.Contains(part.Part, "*") {
-				patt := strings.Replace(part.Part, "*", "", -1)
-				if strings.Contains(metricParts[i], patt) {
+			if part.HasStart {
+				if strings.Contains(metricParts[i], part.ClearPart) {
 					f = true
 					break
 				}
