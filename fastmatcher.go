@@ -58,7 +58,7 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 					str:      patternPart,
 				}
 			} else {
-				regexPart := "^" + patternPart + "$"
+				regexPart = "^" + regexPart + "$"
 				r[j] = RegexpItem{
 					isRegexp: true,
 					reg:      regexp.MustCompile(regexPart),
@@ -91,11 +91,11 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	matchingPatterns = make([]string, p.Count)
 UP:
 	for i := 0; i < len(p.Patterns[metricName[0]]); i++ {
-		if p.Patterns[metricName[0]][i].count != len(metricName) {
+		if p.Patterns[metricName[0]][i].count != len(metric) {
 			continue
 		}
 
-		for j := 0; j < p.Patterns[metricName[0]][i].count; i++ {
+		for j := 0; j < p.Patterns[metricName[0]][i].count; j++ {
 			if p.Patterns[metricName[0]][i].r[j].isEmpty {
 				continue
 			} else if p.Patterns[metricName[0]][i].r[j].isRegexp {
@@ -103,7 +103,7 @@ UP:
 					continue UP
 				}
 			} else {
-				if p.Patterns[metricName[0]][i].r[j].str != metric[i] {
+				if p.Patterns[metricName[0]][i].r[j].str != metric[j] {
 					continue UP
 				}
 			}
@@ -114,7 +114,9 @@ UP:
 	}
 
 	if q > 0 {
-		matchingPatterns = matchingPatterns[0 : q-1]
+		matchingPatterns = matchingPatterns[0:q]
+	} else {
+		matchingPatterns = make([]string, 0)
 	}
 
 	return
