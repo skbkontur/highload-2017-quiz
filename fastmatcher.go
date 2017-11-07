@@ -243,6 +243,7 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 
 	metric := strings.Split(metricName, ".")
 	ind := 0
+
 	getMatches(&p.Checkers[len(metric)], &metric, &matches, &ind)
 
 	return matches[0:ind]
