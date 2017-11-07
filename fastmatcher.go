@@ -5,9 +5,26 @@ import (
 	"strings"
 )
 
-// FastPatternMatcher implements high-performance Graphite metric filtering
-type FastPatternMatcher struct {
-	AllowedPatterns []string
+type (
+	Pattern struct {
+		Full   string
+		RegExs []*regexp.Regexp
+	}
+
+	// FastPatternMatcher implements high-performance Graphite metric filtering
+	FastPatternMatcher struct {
+		AllowedPatterns []Pattern
+	}
+)
+
+func (p *FastPatternMatcher) compileRegexPart(part string) *regexp.Regexp {
+	regexPart := "^" + part + "$"
+	regexPart = strings.Replace(regexPart, "*", ".*", -1)
+	regexPart = strings.Replace(regexPart, "{", "(", -1)
+	regexPart = strings.Replace(regexPart, "}", ")", -1)
+	regexPart = strings.Replace(regexPart, ",", "|", -1)
+
+	return regexp.MustCompile(regexPart)
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -16,7 +33,17 @@ type FastPatternMatcher struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.AllowedPatterns = allowedPatterns
+	p.AllowedPatterns = make([]Pattern, len(allowedPatterns))
+	for i, pat := range allowedPatterns {
+		parts := strings.Split(pat, `.`)
+
+		p.AllowedPatterns[i].Full = pat
+		p.AllowedPatterns[i].RegExs = make([]*regexp.Regexp, len(parts))
+
+		for j := range parts {
+			p.AllowedPatterns[i].RegExs[j] = p.compileRegexPart(parts[j])
+		}
+	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
@@ -24,25 +51,16 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
-	for _, pattern := range p.AllowedPatterns {
-		patternParts := strings.Split(pattern, ".")
-		if len(patternParts) != len(metricParts) {
+	for _, patternParts := range p.AllowedPatterns {
+		if len(patternParts.RegExs) != len(metricParts) {
 			continue NEXTPATTERN
 		}
-		for i, part := range patternParts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
-
-			regex := regexp.MustCompile(regexPart)
-
+		for i, regex := range patternParts.RegExs {
 			if !regex.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
 			}
 		}
-		matchingPatterns = append(matchingPatterns, pattern)
+		matchingPatterns = append(matchingPatterns, patternParts.Full)
 	}
 
 	return
