@@ -37,12 +37,12 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.AllowedPatterns = make([]patternRegexps, len(allowedPatterns))
 	for i, pattern := range allowedPatterns {
 		patternParts := strings.Split(pattern, ".")
+		matchSpec, _ := regexp.MatchString("{", pattern)
 		p.AllowedPatterns[i] = patternRegexps{name: pattern, count: len(patternParts)}
 		p.AllowedPatterns[i].regexps = make([]*regexp.Regexp, p.AllowedPatterns[i].count)
 		for n, part := range patternParts {
 			part = r.Replace(part)
-			match, _ := regexp.MatchString("{", part)
-			if match {
+			if matchSpec {
 				part = r2.Replace(part)
 			}
 			part = strings.Join([]string{"^", part, "$"}, "")
