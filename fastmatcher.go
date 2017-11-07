@@ -6,11 +6,9 @@ import (
 )
 
 type Pattern struct {
-	Rgs   map[string]*regexp.Regexp
-	Parts []string
 	Full  string
-
-	Parts2 []Part
+	Len   int
+	Parts []Part
 }
 
 type Part struct {
@@ -32,43 +30,34 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.P = make([]Pattern, len(allowedPatterns))
 
 	for i, pattern := range allowedPatterns {
-		p.P[i].Parts = strings.Split(pattern, ".")
-		rgs := map[string]*regexp.Regexp{}
-		for _, part := range p.P[i].Parts {
+		for _, part := range strings.Split(pattern, ".") {
 			regexPart := "^" + part + "$"
 			regexPart = strings.Replace(regexPart, "*", ".*", -1)
 			regexPart = strings.Replace(regexPart, "{", "(", -1)
 			regexPart = strings.Replace(regexPart, "}", ")", -1)
 			regexPart = strings.Replace(regexPart, ",", "|", -1)
 
-			rgs[part] = regexp.MustCompile(regexPart)
-
-			p.P[i].Parts2 = append(p.P[i].Parts2, Part{
+			p.P[i].Parts = append(p.P[i].Parts, Part{
 				Part: part,
 				Rgs:  regexp.MustCompile(regexPart),
 			})
 		}
-
-		p.P[i] = Pattern{
-			Parts: strings.Split(pattern, "."),
-			Rgs:   rgs,
-			Full:  pattern,
-		}
-
 	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
-func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
+func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
 	metricParts := strings.Split(metricName, ".")
+
+	matchingPatterns := make([]string, 0, 100)
 
 NEXTPATTERN:
 	for _, pt := range p.P {
 
-		if len(pt.Parts) != len(metricParts) {
+		if pt.Len != len(metricParts) {
 			continue NEXTPATTERN
 		}
-		for i, part := range pt.Parts2 {
+		for i, part := range pt.Parts {
 			if !part.Rgs.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
 			}
@@ -76,5 +65,5 @@ NEXTPATTERN:
 		matchingPatterns = append(matchingPatterns, pt.Full)
 	}
 
-	return
+	return matchingPatterns
 }
