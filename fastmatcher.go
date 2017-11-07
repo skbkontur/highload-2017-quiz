@@ -238,7 +238,7 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 	matches := make([]string, p.Count, p.Count)
 
 	if p.Patterns[metricName[0]] == nil {
-		return matches
+		return make([]string, 0)
 	}
 
 	metric := strings.Split(metricName, ".")
