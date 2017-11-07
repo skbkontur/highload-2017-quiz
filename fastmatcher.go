@@ -7,7 +7,7 @@ import (
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
-	AllowedPatterns [][]*regexp.Regexp
+	AllowedPatterns map[string][]*regexp.Regexp
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -17,19 +17,19 @@ type FastPatternMatcher struct {
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	
-	p.AllowedPatterns = make([][]*regexp.Regexp, 0, len(allowedPatterns))
+	p.AllowedPatterns = make(map[string][]*regexp.Regexp)
 
-	for i, pattern := range allowedPatterns {
+	for _, pattern := range allowedPatterns {
 		parts := strings.Split(pattern, ".")
-		p.AllowedPatterns[i] = make([]*regexp.Regexp, 0, len(parts))
+		p.AllowedPatterns[pattern] = make([]*regexp.Regexp, 0, len(parts))
 		
-		for j, part := range parts {
+		for i, part := range parts {
 			regexPart := "^" + part + "$"
 			regexPart = strings.Replace(regexPart, "*", ".*", -1)
 			regexPart = strings.Replace(regexPart, "{", "(", -1)
 			regexPart = strings.Replace(regexPart, "}", ")", -1)
 			regexPart = strings.Replace(regexPart, ",", "|", -1)
-			p.AllowedPatterns[i][j] = regexp.MustCompile(regexPart)
+			p.AllowedPatterns[pattern][i] = regexp.MustCompile(regexPart)
 		}
 	}
 }
@@ -44,7 +44,7 @@ NEXTPATTERN:
 			continue
 		}
 		for i, part := range patternParts {
-			if !regex.MatchString(metricParts[i]) {
+			if !part.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
 			}
 		}
