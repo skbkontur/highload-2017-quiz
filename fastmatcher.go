@@ -47,8 +47,8 @@ func expandPatterns(allowedPatterns []string) (patterns []string) {
 			endIndex := strings.Index(pattern, "}")
 			offset := startIndex
 
-			for _, alternative := range strings.Split(pattern[startIndex + 1:endIndex], ",") {
-				patterns = append(patterns, pattern[0:offset] + alternative + pattern[endIndex + 1:])
+			for _, alternative := range strings.Split(pattern[startIndex+1:endIndex], ",") {
+				patterns = append(patterns, pattern[0:offset]+alternative+pattern[endIndex+1:])
 			}
 		}
 	}
@@ -95,12 +95,14 @@ func createTrie(root *TrieVertex, patterns []string) {
 	}
 }
 
+var replacer = strings.NewReplacer(
+	"*", ".*",
+	"{", "(",
+	",", "|",
+	"}", ")")
+
 func getRegexp(part string) *regexp.Regexp {
-	part = strings.Replace(part, "*", ".*", -1)
-	part = strings.Replace(part, "{", "(", -1)
-	part = strings.Replace(part, ",", "|", -1)
-	part = strings.Replace(part, "}", ")", -1)
-	expr, _ := regexp.Compile(part)
+	expr, _ := regexp.Compile(replacer.Replace(part))
 	return expr
 }
 
@@ -126,19 +128,18 @@ func printTrie(vertex *TrieVertex, level int) {
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
-	matchingPatterns = make([]string, 0, )
-	return detectMatchingPatterns(p.PatternTrieRoot, strings.Split(metricName, "."))
+	detectMatchingPatterns(p.PatternTrieRoot, strings.Split(metricName, "."), &matchingPatterns)
+	return
 }
 
-func detectMatchingPatterns(vertex *TrieVertex, parts []string) (matchingPatterns []string) {
+func detectMatchingPatterns(vertex *TrieVertex, parts []string, patterns *[]string) {
 	for i, part := range parts {
 		for _, child := range vertex.children {
 			if child.token == part || child.isWildcard || child.isRegexp && child.regexp.MatchString(part) {
 				if child.isTerminal {
-					matchingPatterns = append(matchingPatterns, vertex.pattern)
+					*patterns = append(*patterns, vertex.pattern)
 				} else {
-					patterns := detectMatchingPatterns(child, parts[i+1:])
-					matchingPatterns = append(matchingPatterns, patterns...)
+					detectMatchingPatterns(child, parts[i+1:], patterns)
 				}
 			}
 		}
