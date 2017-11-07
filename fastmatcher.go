@@ -8,9 +8,10 @@ import (
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type (
 	FastPatternMatcher struct {
-		Checkers [][]Checker
+		Checkers [][][]Checker
 		Patterns [][]Pattern
 		Count    int
+		Match    []string
 	}
 
 	RegexpItem struct {
@@ -43,7 +44,15 @@ type (
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.Patterns = make([][]Pattern, 256)
-	p.Checkers = make([][]Checker, 256)
+	p.Checkers = make([][][]Checker, 20)
+
+	p.Count = len(allowedPatterns)
+	p.Match = make([]string, p.Count, p.Count)
+
+	for i := 0; i < len(p.Checkers); i++ {
+		p.Checkers[i] = make([][]Checker, 256)
+	}
+
 	re := regexp.MustCompile("^([^{]+)({[^}]+})(.*)$")
 
 	patternsMap := map[string]string{}
@@ -82,8 +91,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 			break
 		}
 	}
-
-	p.Count = len(allowedPatterns)
 
 	for _, pattern := range allowedPatterns {
 		patternParts := strings.Split(pattern, ".")
@@ -173,11 +180,11 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		}
 
 		for j := 0; j < len(p.Patterns[i]); j++ {
-			if p.Checkers[p.Patterns[i][j].count] == nil {
-				p.Checkers[p.Patterns[i][j].count] = make([]Checker, 0)
+			if p.Checkers[p.Patterns[i][j].count][p.Patterns[i][j].str[0]] == nil {
+				p.Checkers[p.Patterns[i][j].count][p.Patterns[i][j].str[0]] = make([]Checker, 0)
 			}
 
-			list := &p.Checkers[p.Patterns[i][j].count]
+			list := &p.Checkers[p.Patterns[i][j].count][p.Patterns[i][j].str[0]]
 
 			for q := 0; q < len(p.Patterns[i][j].r); q++ {
 				list = addChecker(list, q, &p.Patterns[i][j].r[q])
@@ -241,16 +248,14 @@ func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int)
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
-	matches := make([]string, p.Count, p.Count)
-
 	if p.Patterns[metricName[0]] == nil {
-		return matches
+		return p.Match[0:0]
 	}
 
 	metric := strings.Split(metricName, ".")
 	ind := 0
 
-	getMatches(&p.Checkers[len(metric)], &metric, &matches, &ind)
+	getMatches(&p.Checkers[len(metric)][metricName[0]], &metric, &p.Match, &ind)
 
-	return matches[0:ind]
+	return p.Match[0:ind]
 }
