@@ -56,6 +56,7 @@ NEXTPATTERN:
 				} else {
 					continue NEXTPATTERN
 				}
+			}
 			if !part.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
 			}
