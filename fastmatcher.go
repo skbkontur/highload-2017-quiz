@@ -22,18 +22,20 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
 	metricParts := strings.Split(metricName, ".")
+	lenMetricParts := len(metricParts)
+
+	bracesRegex := regexp.MustCompile(`{(.*)}`)
 
 NEXTPATTERN:
 	for _, pattern := range p.AllowedPatterns {
 		patternParts := strings.Split(pattern, ".")
-		if len(patternParts) != len(metricParts) {
+		if len(patternParts) != lenMetricParts {
 			continue NEXTPATTERN
 		}
 		for i, part := range patternParts {
 			regexPart := "^" + part + "$"
 			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
+			regexPart = bracesRegex.ReplaceAllString(regexPart, "($1)")
 			regexPart = strings.Replace(regexPart, ",", "|", -1)
 
 			regex := regexp.MustCompile(regexPart)
