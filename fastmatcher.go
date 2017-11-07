@@ -42,6 +42,8 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 				Rgs:  regexp.MustCompile(regexPart),
 			})
 		}
+
+		p.P[i].Len = len(p.P[i].Parts)
 	}
 }
 
@@ -51,17 +53,26 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 
 	matchingPatterns := make([]string, 0, 100)
 
-NEXTPATTERN:
 	for _, pt := range p.P {
 
 		if pt.Len != len(metricParts) {
-			continue NEXTPATTERN
+			continue
 		}
-		for i, part := range pt.Parts {
-			if !part.Rgs.MatchString(metricParts[i]) {
-				continue NEXTPATTERN
+
+		if !pt.Parts[0].Rgs.MatchString(metricParts[0]) {
+			continue
+		}
+
+		if !pt.Parts[1].Rgs.MatchString(metricParts[1]) {
+			continue
+		}
+
+		if len(pt.Parts) == 3 {
+			if !pt.Parts[2].Rgs.MatchString(metricParts[2]) {
+				continue
 			}
 		}
+
 		matchingPatterns = append(matchingPatterns, pt.Full)
 	}
 
