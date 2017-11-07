@@ -1,6 +1,7 @@
 package hlconf2017
 
 import (
+	//"fmt"
 	"regexp"
 	"strings"
 )
@@ -20,6 +21,10 @@ type Pattern struct {
 type Part struct {
 	Part string
 	Rgs  *regexp.Regexp
+
+	Prefix string
+	Sufix  string
+	Or     []string
 }
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
@@ -48,10 +53,38 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 
 			regexPart = "^" + regexPart + "$"
 
-			p.P[i].Parts = append(p.P[i].Parts, Part{
+			pp := Part{
 				Part: part,
 				Rgs:  regexp.MustCompile(regexPart),
-			})
+			}
+
+			if strings.Contains(pp.Part, "{") {
+				raw := strings.Replace(pp.Part, "{", ",", -1)
+				raw = strings.Replace(raw, "}", ",", -1)
+
+				pparts := strings.Split(raw, ",")
+				ll := len(pparts)
+
+				if strings.Index(pp.Part, "{") != 0 {
+					pp.Prefix = pparts[0]
+					pparts = pparts[1:]
+				}
+
+				ll = len(pparts)
+
+				if strings.Index(pp.Part, "}") != ll-1 {
+					pp.Sufix = pparts[ll-1]
+					pparts = pparts[:ll-1]
+				}
+
+				if pparts[0] == "" {
+					pparts = pparts[1:]
+				}
+
+				pp.Or = pparts
+			}
+
+			p.P[i].Parts = append(p.P[i].Parts, pp)
 
 			if j != 0 {
 				str += `\.` + inner
@@ -86,20 +119,35 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 			continue
 		}
 
-		//fmt.Println(pt.Parts)
 		s := true
 		for i, part := range pt.Parts {
 			f := false
 			if part.Part == "*" {
 				f = true
-				continue
 			}
 
 			if part.Part == metricParts[i] {
 				f = true
 			}
 
-			f = part.Rgs.MatchString(metricParts[i])
+			if len(part.Or) > 0 {
+				for _, item := range part.Or {
+					patt := strings.Replace(part.Prefix+item+part.Sufix, "*", "", -1)
+
+					if strings.Contains(metricParts[i], patt) {
+						f = true
+						break
+					}
+				}
+			}
+
+			if strings.Contains(part.Part, "*") {
+				patt := strings.Replace(part.Part, "*", "", -1)
+				if strings.Contains(metricParts[i], patt) {
+					f = true
+					break
+				}
+			}
 
 			s = s && f
 		}
