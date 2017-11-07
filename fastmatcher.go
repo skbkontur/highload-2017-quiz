@@ -27,12 +27,38 @@ type TrieVertex struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
+	patterns := expandPatterns(allowedPatterns)
+
 	p.PatternTrieRoot = &TrieVertex{
 		isTerminal: false,
 	}
 
+	createTrie(p.PatternTrieRoot, patterns)
+	//printTrie(p.PatternTrieRoot, 0)
+}
+
+func expandPatterns(allowedPatterns []string) (patterns []string) {
 	for _, pattern := range allowedPatterns {
-		vertex := p.PatternTrieRoot
+		startIndex := strings.Index(pattern, "{")
+
+		if startIndex == -1 {
+			patterns = append(patterns, pattern)
+		} else {
+			endIndex := strings.Index(pattern, "}")
+			offset := startIndex
+
+			for _, alternative := range strings.Split(pattern[startIndex + 1:endIndex], ",") {
+				patterns = append(patterns, pattern[0:offset] + alternative + pattern[endIndex + 1:])
+			}
+		}
+	}
+
+	return patterns
+}
+
+func createTrie(root *TrieVertex, patterns []string) {
+	for _, pattern := range patterns {
+		vertex := root
 
 		for _, part := range strings.Split(pattern, ".") {
 			hasSuitableChild := false
@@ -67,8 +93,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		vertex.pattern = pattern
 		vertex.isTerminal = true
 	}
-
-	//printTrie(p.PatternTrieRoot, 0)
 }
 
 func getRegexp(part string) *regexp.Regexp {
@@ -102,6 +126,7 @@ func printTrie(vertex *TrieVertex, level int) {
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
+	matchingPatterns = make([]string, 0, )
 	return detectMatchingPatterns(p.PatternTrieRoot, strings.Split(metricName, "."))
 }
 
