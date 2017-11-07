@@ -209,7 +209,9 @@ func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int)
 				(*matches)[*index] = (*arr)[i].rItem.pattern
 				*index++
 			} else {
-				getMatches(&(*arr)[i].children, metric, matches, index)
+				if len((*arr)[i].children) > 0 {
+					getMatches(&(*arr)[i].children, metric, matches, index)
+				}
 			}
 		} else if (*arr)[i].rItem.isRegexp {
 			if (*arr)[i].rItem.reg((*metric)[(*arr)[i].level]) {
@@ -217,7 +219,9 @@ func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int)
 					(*matches)[*index] = (*arr)[i].rItem.pattern
 					*index++
 				} else {
-					getMatches(&(*arr)[i].children, metric, matches, index)
+					if len((*arr)[i].children) > 0 {
+						getMatches(&(*arr)[i].children, metric, matches, index)
+					}
 				}
 			}
 		} else {
@@ -226,7 +230,9 @@ func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int)
 					(*matches)[*index] = (*arr)[i].rItem.pattern
 					*index++
 				} else {
-					getMatches(&(*arr)[i].children, metric, matches, index)
+					if len((*arr)[i].children) > 0 {
+						getMatches(&(*arr)[i].children, metric, matches, index)
+					}
 				}
 			}
 		}
