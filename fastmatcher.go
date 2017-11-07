@@ -205,34 +205,24 @@ func addChecker(arr *[]Checker, level int, rItem *RegexpItem) *[]Checker {
 func getMatches(arr *[]Checker, metric *[]string) []string {
 	matches := make([]string, 0)
 	for i := 0; i < len(*arr); i++ {
-		if (*arr)[i].level >= len(*metric) {
-			return matches
-		}
-
 		if (*arr)[i].rItem.isEmpty {
-			if len(*metric)-1 == (*arr)[i].level {
-				if (*arr)[i].rItem.pattern != "" {
-					matches = append(matches, (*arr)[i].rItem.pattern)
-				}
+			if (*arr)[i].rItem.pattern != "" {
+				matches = append(matches, (*arr)[i].rItem.pattern)
 			} else {
 				matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
 			}
 		} else if (*arr)[i].rItem.isRegexp {
 			if (*arr)[i].rItem.reg((*metric)[(*arr)[i].level]) {
-				if len(*metric)-1 == (*arr)[i].level {
-					if (*arr)[i].rItem.pattern != "" {
-						matches = append(matches, (*arr)[i].rItem.pattern)
-					}
+				if (*arr)[i].rItem.pattern != "" {
+					matches = append(matches, (*arr)[i].rItem.pattern)
 				} else {
 					matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
 				}
 			}
 		} else {
 			if (*arr)[i].rItem.str == (*metric)[(*arr)[i].level] {
-				if len(*metric)-1 == (*arr)[i].level {
-					if (*arr)[i].rItem.pattern != "" {
-						matches = append(matches, (*arr)[i].rItem.pattern)
-					}
+				if (*arr)[i].rItem.pattern != "" {
+					matches = append(matches, (*arr)[i].rItem.pattern)
 				} else {
 					matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
 				}
