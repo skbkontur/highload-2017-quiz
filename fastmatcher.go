@@ -6,8 +6,13 @@ import (
 )
 
 type Pattern struct {
-	Full  string
-	Len   int
+	Full string
+	Len  int
+
+	Part1 Part
+	Part2 Part
+	Part3 Part
+
 	Parts []Part
 }
 
@@ -44,36 +49,50 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		}
 
 		p.P[i].Len = len(p.P[i].Parts)
+
+		p.P[i].Part1 = p.P[i].Parts[0]
+		p.P[i].Part2 = p.P[i].Parts[1]
+		if len(p.P[i].Parts) == 3 {
+			p.P[i].Part3 = p.P[i].Parts[2]
+		}
 	}
 }
 
+var (
+	matchingPatterns = make([]string, 0, 50)
+	l                int
+	metricParts      []string
+	pos              int
+)
+
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
-	metricParts := strings.Split(metricName, ".")
+	metricParts = strings.Split(metricName, ".")
+	matchingPatterns = []string{}
+	l = len(metricParts)
 
-	matchingPatterns := make([]string, 0, 100)
-
+	pos = 0
 	for _, pt := range p.P {
-
-		if pt.Len != len(metricParts) {
+		if pt.Len != l {
 			continue
 		}
 
-		if !pt.Parts[0].Rgs.MatchString(metricParts[0]) {
-			continue
-		}
-
-		if !pt.Parts[1].Rgs.MatchString(metricParts[1]) {
-			continue
-		}
-
-		if len(pt.Parts) == 3 {
-			if !pt.Parts[2].Rgs.MatchString(metricParts[2]) {
+		if l == 3 {
+			if !pt.Part3.Rgs.MatchString(metricParts[2]) {
 				continue
 			}
 		}
 
-		matchingPatterns = append(matchingPatterns, pt.Full)
+		if !pt.Part2.Rgs.MatchString(metricParts[0]) {
+			continue
+		}
+
+		if !pt.Part1.Rgs.MatchString(metricParts[1]) {
+			continue
+		}
+
+		matchingPatterns[pos] = pt.Full
+		pos++
 	}
 
 	return matchingPatterns
