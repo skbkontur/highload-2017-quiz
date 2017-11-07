@@ -52,18 +52,18 @@ func TestFastPatternMatcher_DetectMatchingPatterns(t *testing.T) {
 			t.Errorf("%s should not match any patterns, but it does", metricName)
 		}
 	}
-	//
-	//for _, metricName := range fastMatchingSingleMetrics {
-	//	if len(pm.DetectMatchingPatterns(metricName)) != 1 {
-	//		t.Errorf("%s should match exactly one pattern, but it doesn't", metricName)
-	//	}
-	//}
 
-	//for _, metricName := range fastMatchingMultipleMetrics {
-	//	if len(pm.DetectMatchingPatterns(metricName)) < 2 {
-	//		t.Errorf("%s should match more than one pattern, but it doesn't", metricName)
-	//	}
-	//}
+	for _, metricName := range fastMatchingSingleMetrics {
+		if len(pm.DetectMatchingPatterns(metricName)) != 1 {
+			t.Errorf("%s should match exactly one pattern, but it doesn't", metricName)
+		}
+	}
+
+	for _, metricName := range fastMatchingMultipleMetrics {
+		if len(pm.DetectMatchingPatterns(metricName)) < 2 {
+			t.Errorf("%s should match more than one pattern, but it doesn't", metricName)
+		}
+	}
 }
 
 func BenchmarkFastPatternMatcher_DetectMatchingPatterns(b *testing.B) {
