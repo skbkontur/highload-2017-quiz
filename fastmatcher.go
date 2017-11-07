@@ -6,12 +6,11 @@ import (
 )
 
 type Pattern struct {
-	Full string
-	Len  int
+	Full      string
+	Len       int
+	UseRegexp bool
 
-	Part1 Part
-	Part2 Part
-	Part3 Part
+	Prefix Part
 
 	Parts []Part
 
@@ -67,16 +66,10 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		p.P[i].Len = len(p.P[i].Parts)
 		p.P[i].Full = pattern
 
-		p.P[i].Part1 = p.P[i].Parts[0]
-		p.P[i].Part2 = p.P[i].Parts[1]
-		if len(p.P[i].Parts) == 3 {
-			p.P[i].Part3 = p.P[i].Parts[2]
-		}
-
+		p.P[i].Prefix = p.P[i].Parts[0]
 		p.P[i].UberRgs = regexp.MustCompile(str)
 	}
 }
-
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
@@ -89,15 +82,31 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 			continue
 		}
 
-		if !strings.HasPrefix(metricName, pt.Part1.Part) {
+		if !strings.HasPrefix(metricName, pt.Prefix.Part) {
 			continue
 		}
 
+		//fmt.Println(pt.Parts)
+		s := true
+		for i, part := range pt.Parts {
+			f := false
+			if part.Part == "*" {
+				f = true
+				continue
+			}
 
-		if !pt.UberRgs.MatchString(metricName) {
-			continue
+			if part.Part == metricParts[i] {
+				f = true
+			}
+
+			f = part.Rgs.MatchString(metricParts[i])
+
+			s = s && f
 		}
 
+		if !s {
+			continue
+		}
 
 		matchingPatterns = append(matchingPatterns, pt.Full)
 	}
