@@ -3,17 +3,17 @@ package hlconf2017
 import (
 	"regexp"
 	"strings"
-)
+	)
 
 type (
 	patternRegexps struct {
 		name    string
 		regexps []*regexp.Regexp
-		count   int
 	}
 	// FastPatternMatcher implements high-performance Graphite metric filtering
 	FastPatternMatcher struct {
 		AllowedPatterns []patternRegexps
+		index map[int][]int
 	}
 )
 
@@ -35,14 +35,17 @@ var (
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.AllowedPatterns = make([]patternRegexps, len(allowedPatterns))
+	p.index = make(map[int][]int)
 	for i, pattern := range allowedPatterns {
 		patternParts := strings.Split(pattern, ".")
-		matchSpec, _ := regexp.MatchString("{", pattern)
-		p.AllowedPatterns[i] = patternRegexps{name: pattern, count: len(patternParts)}
-		p.AllowedPatterns[i].regexps = make([]*regexp.Regexp, p.AllowedPatterns[i].count)
+		partsCount := len(patternParts)
+		p.AllowedPatterns[i] = patternRegexps{name: pattern}
+		p.index[partsCount] = append(p.index[partsCount], i)
+		p.AllowedPatterns[i].regexps = make([]*regexp.Regexp, partsCount)
 		for n, part := range patternParts {
 			part = r.Replace(part)
-			if matchSpec {
+			match, _ := regexp.MatchString("{", part)
+			if match {
 				part = r2.Replace(part)
 			}
 			part = strings.Join([]string{"^", part, "$"}, "")
@@ -57,10 +60,8 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricPartsLen := len(metricParts)
 
 NEXTPATTERN:
-	for _, patternParts := range p.AllowedPatterns {
-		if patternParts.count != metricPartsLen {
-			continue NEXTPATTERN
-		}
+	for _, n := range p.index[metricPartsLen] {
+		patternParts := p.AllowedPatterns[n]
 		for i, regex := range patternParts.regexps {
 			if !regex.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
