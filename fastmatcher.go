@@ -202,44 +202,48 @@ func addChecker(arr *[]Checker, level int, rItem *RegexpItem) *[]Checker {
 	return &(*arr)[len(*arr)-1].children
 }
 
-func getMatches(arr *[]Checker, metric *[]string) []string {
-	matches := make([]string, 0)
+func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int) {
 	for i := 0; i < len(*arr); i++ {
 		if (*arr)[i].rItem.isEmpty {
 			if (*arr)[i].rItem.pattern != "" {
-				matches = append(matches, (*arr)[i].rItem.pattern)
+				(*matches)[*index] = (*arr)[i].rItem.pattern
+				*index++
 			} else {
-				matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
+				getMatches(&(*arr)[i].children, metric, matches, index)
 			}
 		} else if (*arr)[i].rItem.isRegexp {
 			if (*arr)[i].rItem.reg((*metric)[(*arr)[i].level]) {
 				if (*arr)[i].rItem.pattern != "" {
-					matches = append(matches, (*arr)[i].rItem.pattern)
+					(*matches)[*index] = (*arr)[i].rItem.pattern
+					*index++
 				} else {
-					matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
+					getMatches(&(*arr)[i].children, metric, matches, index)
 				}
 			}
 		} else {
 			if (*arr)[i].rItem.str == (*metric)[(*arr)[i].level] {
 				if (*arr)[i].rItem.pattern != "" {
-					matches = append(matches, (*arr)[i].rItem.pattern)
+					(*matches)[*index] = (*arr)[i].rItem.pattern
+					*index++
 				} else {
-					matches = append(matches, getMatches(&(*arr)[i].children, metric)...)
+					getMatches(&(*arr)[i].children, metric, matches, index)
 				}
 			}
 		}
 	}
-	return matches
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
-func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
+func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
+	matches := make([]string, p.Count, p.Count)
+
 	if p.Patterns[metricName[0]] == nil {
-		return
+		return matches
 	}
 
 	metric := strings.Split(metricName, ".")
-	matchingPatterns = getMatches(&p.Checkers[len(metric)], &metric)
+	ind := 0
+	getMatches(&p.Checkers[len(metric)], &metric, &matches, &ind)
 
-	return
+	return matches[0:ind]
 }
