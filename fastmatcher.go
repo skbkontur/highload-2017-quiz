@@ -27,15 +27,22 @@ NEXTPATTERN:
 	for _, pattern := range p.AllowedPatterns {
 		patternParts := strings.Split(pattern, ".")
 		if len(patternParts) != len(metricParts) {
-			continue NEXTPATTERN
+			continue
 		}
 		for i, part := range patternParts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
+			initialRegexPart := "^" + part + "$"
+			regexPart := strings.Replace(initialRegexPart, "*", ".*", -1)
 			regexPart = strings.Replace(regexPart, "{", "(", -1)
 			regexPart = strings.Replace(regexPart, "}", ")", -1)
 			regexPart = strings.Replace(regexPart, ",", "|", -1)
 
+			if regexPart == initialRegexPart {
+				if part == metricParts[i] {
+					continue
+				} else {
+					continue NEXTPATTERN
+				}
+			}
 			regex := regexp.MustCompile(regexPart)
 
 			if !regex.MatchString(metricParts[i]) {
