@@ -1,27 +1,18 @@
 package hlconf2017
 
 import (
-	//"fmt"
-	"regexp"
 	"strings"
 )
 
 type Pattern struct {
-	Full      string
-	Len       int
-	UseRegexp bool
-
+	Full   string
+	Len    int
 	Prefix Part
-
-	Parts []Part
-
-	UberRgs *regexp.Regexp
+	Parts  []Part
 }
 
 type Part struct {
-	Part string
-	Rgs  *regexp.Regexp
-
+	Part   string
 	Prefix string
 	Sufix  string
 	Or     []string
@@ -55,7 +46,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 
 			pp := Part{
 				Part: part,
-				Rgs:  regexp.MustCompile(regexPart),
 			}
 
 			if strings.Contains(pp.Part, "{") {
@@ -98,9 +88,7 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 
 		p.P[i].Len = len(p.P[i].Parts)
 		p.P[i].Full = pattern
-
 		p.P[i].Prefix = p.P[i].Parts[0]
-		p.P[i].UberRgs = regexp.MustCompile(str)
 	}
 }
 
@@ -124,10 +112,12 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 			f := false
 			if part.Part == "*" {
 				f = true
+				continue
 			}
 
 			if part.Part == metricParts[i] {
 				f = true
+				continue
 			}
 
 			if len(part.Or) > 0 {
@@ -139,6 +129,10 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 						break
 					}
 				}
+
+				if f {
+					continue
+				}
 			}
 
 			if strings.Contains(part.Part, "*") {
@@ -146,6 +140,10 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 				if strings.Contains(metricParts[i], patt) {
 					f = true
 					break
+				}
+
+				if f {
+					continue
 				}
 			}
 
