@@ -116,20 +116,20 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 				}
 			} else {
 				regexPart = "^" + regexPart + "$"
+
+				parts := strings.Split(pat, "*")
+				leadingGlob := strings.HasPrefix(pat, "*")
+				trailingGlob := strings.HasSuffix(pat, "*")
+				end := len(parts) - 1
+
 				r[j] = RegexpItem{
 					isRegexp: true,
 					pat:      pat,
 					pattern:  lastPattern,
 					reg: func(subj string) bool {
-						parts := strings.Split(pat, "*")
-
 						if len(parts) == 1 {
 							return subj == pat
 						}
-
-						leadingGlob := strings.HasPrefix(pat, "*")
-						trailingGlob := strings.HasSuffix(pat, "*")
-						end := len(parts) - 1
 
 						for i := 0; i < end; i++ {
 							idx := strings.Index(subj, parts[i])
