@@ -72,7 +72,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 }
 
 func getRegexp(part string) *regexp.Regexp {
-	println("REGEXP")
 	part = strings.Replace(part, "*", ".*", -1)
 	part = strings.Replace(part, "{", "(", -1)
 	part = strings.Replace(part, ",", "|", -1)
