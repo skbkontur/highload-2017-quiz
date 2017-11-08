@@ -97,16 +97,15 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	}
 }
 
+var matchingPatterns = [20]string{}
+
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
-	//metricParts := strings.Split(metricName, ".")
-	matchingPatterns := make([]string, 0, len(p.Patterns))
+	//matchingPatterns := make([]string, 0, len(p.Patterns))
 	metricParts := split(metricName, ".", -1)
-
 	patterns := p.Patterns[len(metricParts)][int(metricParts[0][0])][int(metricParts[0][1])]
 
-	//fmt.Println(len(metricParts), metricParts[0])
-
+	count := 0
 	for _, pt := range patterns {
 		if pt.Len != len(metricParts) {
 			continue
@@ -158,10 +157,13 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 			continue
 		}
 
-		matchingPatterns = append(matchingPatterns, pt.Full)
+
+		matchingPatterns[count] = pt.Full
+
+		count++
 	}
 
-	return matchingPatterns
+	return matchingPatterns[:count]
 }
 
 func split(s, sep string, n int) []string {
