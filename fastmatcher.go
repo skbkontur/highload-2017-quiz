@@ -11,6 +11,7 @@ type MPattern struct {
 	Prefix string
 	Parts  []string
 	Strict bool
+	Regexp *regexp.Regexp
 }
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
@@ -33,13 +34,20 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		}
 		mp := MPattern{}
 		mp.Raw = pattern
+		// пробуем оптимизировать под популярные сценарии
+		// искать подстроку ведь быстрее
 		if pattern[len(pattern)-2:] == ".*" {
 			mp.Prefix = strings.Replace(pattern, ".*", "", -1)
 		}
 		mp.Parts = strings.Split(pattern, ".")
 		mp.Len = len(mp.Parts)
-		if !strings.Contains(pattern, "*") && !strings.Contains(pattern, "{") {
+		if !strings.Contains(pattern, "*") {
 			mp.Strict = true
+		} else {
+			regexPart := "^" + pattern + "$"
+			regexPart = strings.Replace(regexPart, "*", ".*", -1)
+			regex := regexp.MustCompile(regexPart)
+			mp.Regexp = regex
 		}
 		p.MYPatterns = append(p.MYPatterns, mp)
 	}
@@ -86,8 +94,7 @@ NEXTPATTERN:
 				continue NEXTPATTERN
 			}
 		}
-		var lazyRegexps map[string]string
-		lazyRegexps = make(map[string]string)
+		// проверим части без регекспов
 		for i, part := range pattern.Parts {
 			if part == "*" {
 				continue
@@ -95,18 +102,13 @@ NEXTPATTERN:
 			if part == metricParts[i] {
 				continue
 			}
-			// отложенная регулярка
-			if strings.Contains(part, "{") || strings.Contains(part, "*") {
-				lazyRegexps[metricParts[i]] = part
+			if strings.Contains(part, "*") {
 				continue
 			}
 			continue NEXTPATTERN
 		}
-		for a, reg := range lazyRegexps {
-			regexPart := "^" + reg + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regex := regexp.MustCompile(regexPart)
-			if !regex.MatchString(a) {
+		if !pattern.Strict {
+			if !pattern.Regexp.MatchString(metricName) {
 				continue NEXTPATTERN
 			}
 		}
