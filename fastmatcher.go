@@ -86,6 +86,8 @@ NEXTPATTERN:
 				continue NEXTPATTERN
 			}
 		}
+		var lazyRegexps map[string]string
+		lazyRegexps = make(map[string]string)
 		for i, part := range pattern.Parts {
 			if part == "*" {
 				continue
@@ -93,19 +95,20 @@ NEXTPATTERN:
 			if part == metricParts[i] {
 				continue
 			}
-			// регулярка
+			// отложенная регулярка
 			if strings.Contains(part, "{") || strings.Contains(part, "*") {
-				regexPart := "^" + part + "$"
-				regexPart = strings.Replace(regexPart, "*", ".*", -1)
-				regexPart = strings.Replace(regexPart, "{", "(", -1)
-				regexPart = strings.Replace(regexPart, "}", ")", -1)
-				regexPart = strings.Replace(regexPart, ",", "|", -1)
-				regex := regexp.MustCompile(regexPart)
-				if regex.MatchString(metricParts[i]) {
-					continue
-				}
+				lazyRegexps[metricParts[i]] = part
+				continue
 			}
 			continue NEXTPATTERN
+		}
+		for a, reg := range lazyRegexps {
+			regexPart := "^" + reg + "$"
+			regexPart = strings.Replace(regexPart, "*", ".*", -1)
+			regex := regexp.MustCompile(regexPart)
+			if !regex.MatchString(a) {
+				continue NEXTPATTERN
+			}
 		}
 		matchingPatterns = append(matchingPatterns, pattern.Raw)
 		continue NEXTPATTERN
