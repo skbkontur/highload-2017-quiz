@@ -7,7 +7,7 @@ import (
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
-	AllowedPatterns []string
+	AllowedPatterns map[string][]*regexp.Regexp
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -16,7 +16,23 @@ type FastPatternMatcher struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.AllowedPatterns = allowedPatterns
+	p.AllowedPatterns = make(map[string][]*regexp.Regexp)
+
+	for _, pattern := range allowedPatterns {
+		patternParts := strings.Split(pattern, ".")
+
+		compiledParts := make([]*regexp.Regexp, len(patternParts), len(patternParts))
+		for i, part := range patternParts {
+			regexPart := strings.Join([]string{"^", part, "$"}, "")
+			regexPart = strings.Replace(regexPart, "*", ".*", -1)
+			regexPart = strings.Replace(regexPart, "{", "(", -1)
+			regexPart = strings.Replace(regexPart, "}", ")", -1)
+			regexPart = strings.Replace(regexPart, ",", "|", -1)
+
+			compiledParts[i] = regexp.MustCompile(regexPart)
+		}
+		p.AllowedPatterns[pattern] = compiledParts
+	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
@@ -24,21 +40,12 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
-	for _, pattern := range p.AllowedPatterns {
-		patternParts := strings.Split(pattern, ".")
-		if len(patternParts) != len(metricParts) {
+	for pattern, compiledParts := range p.AllowedPatterns {
+		if len(compiledParts) != len(metricParts) {
 			continue NEXTPATTERN
 		}
-		for i, part := range patternParts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
-
-			regex := regexp.MustCompile(regexPart)
-
-			if !regex.MatchString(metricParts[i]) {
+		for i, compiledPart := range compiledParts {
+			if !compiledPart.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
 			}
 		}
