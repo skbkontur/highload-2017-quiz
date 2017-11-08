@@ -8,6 +8,7 @@ type Pattern struct {
 	Full   string
 	Len    int
 	Prefix Part
+	PrefixString string
 	Parts  []Part
 }
 
@@ -33,6 +34,7 @@ type FastPatternMatcher struct {
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	patterns := make([]Pattern, len(allowedPatterns))
 
+	p.Patterns = map[string][]Pattern{}
 	//p.Patterns = make([]Pattern, len(allowedPatterns))
 
 	for i, pattern := range allowedPatterns {
@@ -76,18 +78,19 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		patterns[i].Len = len(patterns[i].Parts)
 		patterns[i].Full = pattern
 		patterns[i].Prefix = patterns[i].Parts[0]
+		patterns[i].PrefixString = patterns[i].Parts[0].Part
 
+		//fmt.Println(p.Patterns)
+	}
 
-		p.Patterns = map[string][]Pattern{}
-		for _, pp := range patterns {
-			_, ok := p.Patterns[pp.Prefix.Part]
-			if ok {
-				p.Patterns[pp.Prefix.Part] = append(p.Patterns[pp.Prefix.Part], pp)
-				continue
-			}
-
-			p.Patterns[pp.Prefix.Part] = []Pattern{pp}
+	for _, pp := range patterns {
+		_, ok := p.Patterns[pp.PrefixString]
+		if ok {
+			p.Patterns[pp.PrefixString] = append(p.Patterns[pp.PrefixString], pp)
+			continue
 		}
+
+		p.Patterns[pp.PrefixString] = []Pattern{pp}
 	}
 }
 
@@ -104,6 +107,10 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 
 	for _, pt := range patterns {
 		if pt.Len != len(metricParts) {
+			continue
+		}
+
+		if metricParts[0] != pt.Prefix.Part {
 			continue
 		}
 
