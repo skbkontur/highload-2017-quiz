@@ -12,6 +12,7 @@ type (
 		Patterns [][]Pattern
 		Count    int
 		Match    []string
+		Splits   []string
 	}
 
 	RegexpItem struct {
@@ -48,6 +49,7 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 
 	p.Count = len(allowedPatterns)
 	p.Match = make([]string, p.Count, p.Count)
+	p.Splits = make([]string, 20)
 
 	for i := 0; i < len(p.Checkers); i++ {
 		p.Checkers[i] = make([][]Checker, 256)
@@ -246,13 +248,32 @@ func getMatches(arr *[]Checker, metric *[]string, matches *[]string, index *int)
 	}
 }
 
+func split(a []string, s, sep string) []string {
+	n := strings.Count(s, sep) + 1
+
+	n--
+	i := 0
+	for i < n {
+		m := strings.Index(s, sep)
+		if m < 0 {
+			break
+		}
+		a[i] = s[:m]
+		s = s[m+len(sep):]
+		i++
+	}
+	a[i] = s
+	return a[:i+1]
+}
+
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
 	if p.Patterns[metricName[0]] == nil {
 		return p.Match[0:0]
 	}
 
-	metric := strings.Split(metricName, ".")
+	//metric := strings.Split(metricName, ".")
+	metric := split(p.Splits, metricName, ".")
 	ind := 0
 
 	getMatches(&p.Checkers[len(metric)][metricName[0]], &metric, &p.Match, &ind)
