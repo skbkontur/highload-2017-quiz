@@ -8,6 +8,8 @@ import (
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
 	AllowedPatterns []string
+	AllowedRegexps  []*regexp.Regexp
+	PatternPartsNum []int
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -17,6 +19,19 @@ type FastPatternMatcher struct {
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.AllowedPatterns = allowedPatterns
+	for _, pattern := range p.AllowedPatterns {
+		regex_str := strings.Replace("^"+pattern+"$", ".", "\\.", -1)
+		regex_str = strings.Replace(regex_str, "*", "[^.]*", -1)
+		regex_str = strings.Replace(regex_str, "{", "(", -1)
+		regex_str = strings.Replace(regex_str, "}", ")", -1)
+		regex_str = strings.Replace(regex_str, ",", "|", -1)
+
+		// fmt.Printf("regex_str: %s\n", regex_str)
+		regex := regexp.MustCompile(regex_str)
+		p.AllowedRegexps = append(p.AllowedRegexps, regex)
+		partsNum := len(strings.Split(pattern, "."))
+		p.PatternPartsNum = append(p.PatternPartsNum, partsNum)
+	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
@@ -24,25 +39,14 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
-	for _, pattern := range p.AllowedPatterns {
-		patternParts := strings.Split(pattern, ".")
-		if len(patternParts) != len(metricParts) {
+	for i, regex := range p.AllowedRegexps {
+		if p.PatternPartsNum[i] != len(metricParts) {
 			continue NEXTPATTERN
 		}
-		for i, part := range patternParts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
-
-			regex := regexp.MustCompile(regexPart)
-
-			if !regex.MatchString(metricParts[i]) {
-				continue NEXTPATTERN
-			}
+		if !regex.MatchString(metricName) {
+			continue NEXTPATTERN
 		}
-		matchingPatterns = append(matchingPatterns, pattern)
+		matchingPatterns = append(matchingPatterns, p.AllowedPatterns[i])
 	}
 
 	return
