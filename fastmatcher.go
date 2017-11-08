@@ -110,10 +110,6 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 			continue
 		}
 
-		if metricParts[0] != pt.Prefix.Part {
-			continue
-		}
-
 		s := true
 		for i, part := range pt.Parts {
 			f := false
