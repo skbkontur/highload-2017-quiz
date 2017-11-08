@@ -9,7 +9,6 @@ import (
 type FastPatternMatcher struct {
 	AllowedPatterns []string
 	AllowedRegexps  []*regexp.Regexp
-	PatternPartsNum []int
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -29,20 +28,14 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		// fmt.Printf("regex_str: %s\n", regex_str)
 		regex := regexp.MustCompile(regex_str)
 		p.AllowedRegexps = append(p.AllowedRegexps, regex)
-		partsNum := len(strings.Split(pattern, "."))
-		p.PatternPartsNum = append(p.PatternPartsNum, partsNum)
 	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
-	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
 	for i, regex := range p.AllowedRegexps {
-		if p.PatternPartsNum[i] != len(metricParts) {
-			continue NEXTPATTERN
-		}
 		if !regex.MatchString(metricName) {
 			continue NEXTPATTERN
 		}
