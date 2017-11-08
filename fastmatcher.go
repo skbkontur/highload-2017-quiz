@@ -26,10 +26,14 @@ type FastPatternMatcher struct {
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	for _, pattern := range allowedPatterns {
+		// разобьем на несколько паттернов
+		if strings.Contains(pattern, "{") {
+			p.ExpandPattern(pattern)
+			continue
+		}
 		mp := MPattern{}
 		mp.Raw = pattern
 		if pattern[len(pattern)-2:] == ".*" {
-			// mp.Prefix = pattern[len(pattern)-2:]
 			mp.Prefix = strings.Replace(pattern, ".*", "", -1)
 		}
 		mp.Parts = strings.Split(pattern, ".")
@@ -40,6 +44,17 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		p.MYPatterns = append(p.MYPatterns, mp)
 	}
 	p.AllowedPatterns = allowedPatterns
+}
+
+// ExpandPattern expands metric.{a,b}
+func (p *FastPatternMatcher) ExpandPattern(pattern string) {
+	startIndex := strings.Index(pattern, "{")
+	endIndex := strings.Index(pattern, "}")
+	var newPatterns []string
+	for _, variant := range strings.Split(pattern[startIndex+1:endIndex], ",") {
+		newPatterns = append(newPatterns, pattern[0:startIndex]+variant+pattern[endIndex+1:])
+	}
+	p.InitPatterns(newPatterns)
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
