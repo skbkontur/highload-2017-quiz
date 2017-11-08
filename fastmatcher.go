@@ -98,16 +98,20 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 }
 
 var matchingPatterns = [20]string{}
+var metricParts = [4]string{}
+var cn = 0
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
 	//matchingPatterns := make([]string, 0, len(p.Patterns))
-	metricParts := split(metricName, ".", -1)
-	patterns := p.Patterns[len(metricParts)][int(metricParts[0][0])][int(metricParts[0][1])]
+
+	cn = strings.Count(metricName, ".") + 1
+
+	split(&metricParts, metricName, ".", cn)
 
 	count := 0
-	for _, pt := range patterns {
-		if pt.Len != len(metricParts) {
+	for _, pt := range p.Patterns[cn][int(metricParts[0][0])][int(metricParts[0][1])] {
+		if pt.Len != cn {
 			continue
 		}
 
@@ -166,12 +170,8 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 	return matchingPatterns[:count]
 }
 
-func split(s, sep string, n int) []string {
-	if n < 0 {
-		n = strings.Count(s, sep) + 1
-	}
-
-	a := make([]string, n)
+func split(a *[4]string, s, sep string, n int) (*[4]string) {
+	n = n+1
 	n--
 	i := 0
 	for i < n {
@@ -184,5 +184,5 @@ func split(s, sep string, n int) []string {
 		i++
 	}
 	a[i] = s
-	return a[:i+1]
+	return a
 }
