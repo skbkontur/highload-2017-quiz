@@ -130,8 +130,6 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string 
 
 			if len(part.Or) > 0 {
 				for _, item := range part.OrFull {
-					//patt := part.Prefix + item + part.Sufix
-
 					if strings.Contains(metricParts[i], item) {
 						f = true
 						break
