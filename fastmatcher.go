@@ -7,7 +7,8 @@ import (
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
-	AllowedPatterns []string
+	AllowedPatterns map[string]*regexp.Regexp
+	StaticPatterns []string
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -16,32 +17,42 @@ type FastPatternMatcher struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.AllowedPatterns = allowedPatterns
+	p.AllowedPatterns = make(map[string]*regexp.Regexp)
+
+	for _, pattern := range allowedPatterns {
+		if isStaticPattern(pattern) {
+			p.StaticPatterns = append(p.StaticPatterns, pattern)
+			continue
+		}
+
+		regexPattern := "^" + pattern + "$"
+		regexPattern = strings.Replace(regexPattern, ".", "\\.", -1)
+		regexPattern = strings.Replace(regexPattern, "*", ".*", -1)
+		regexPattern = strings.Replace(regexPattern, "{", "(", -1)
+		regexPattern = strings.Replace(regexPattern, "}", ")", -1)
+		regexPattern = strings.Replace(regexPattern, ",", "|", -1)
+
+		p.AllowedPatterns[pattern] = regexp.MustCompile(regexPattern)
+	}
+}
+
+func isStaticPattern(pattern string) bool {
+	return !strings.Contains(pattern, "*") && !strings.Contains(pattern, "{")
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matchingPatterns []string) {
-	metricParts := strings.Split(metricName, ".")
-
-NEXTPATTERN:
-	for _, pattern := range p.AllowedPatterns {
-		patternParts := strings.Split(pattern, ".")
-		if len(patternParts) != len(metricParts) {
-			continue NEXTPATTERN
+	for _, staticPattern := range p.StaticPatterns {
+		if staticPattern == metricName {
+			matchingPatterns = append(matchingPatterns, staticPattern)
 		}
-		for i, part := range patternParts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
+	}
 
-			regex := regexp.MustCompile(regexPart)
-
-			if !regex.MatchString(metricParts[i]) {
-				continue NEXTPATTERN
-			}
+	for pattern, regex := range p.AllowedPatterns {
+		if !regex.MatchString(metricName) {
+			continue
 		}
+
 		matchingPatterns = append(matchingPatterns, pattern)
 	}
 
