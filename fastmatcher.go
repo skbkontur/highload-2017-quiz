@@ -175,7 +175,7 @@ func split(a *[4]string, s, sep string, n int) (*[4]string) {
 	n--
 	i := 0
 	for i < n {
-		m := strings.Index(s, sep)
+		m := index(s)
 		if m < 0 {
 			break
 		}
@@ -185,4 +185,16 @@ func split(a *[4]string, s, sep string, n int) (*[4]string) {
 	}
 	a[i] = s
 	return a
+}
+
+var dot int32 = 46
+
+func index(str string) int {
+	for pos ,i := range str {
+		if i == dot {
+			return pos
+		}
+	}
+
+	return -1
 }
