@@ -7,7 +7,7 @@ import (
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
-	AllowedPatterns []string
+	AllowedPatterns [][]string
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -16,7 +16,10 @@ type FastPatternMatcher struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.AllowedPatterns = allowedPatterns
+	p.AllowedPatterns = make([][]string, len(allowedPatterns))
+	for i, pattern := range allowedPatterns {
+		p.AllowedPatterns[i] = strings.Split(pattern, ".")
+	}
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
@@ -24,8 +27,7 @@ func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) (matching
 	metricParts := strings.Split(metricName, ".")
 
 NEXTPATTERN:
-	for _, pattern := range p.AllowedPatterns {
-		patternParts := strings.Split(pattern, ".")
+	for _, patternParts := range p.AllowedPatterns {
 		if len(patternParts) != len(metricParts) {
 			continue NEXTPATTERN
 		}
@@ -42,7 +44,7 @@ NEXTPATTERN:
 				continue NEXTPATTERN
 			}
 		}
-		matchingPatterns = append(matchingPatterns, pattern)
+		matchingPatterns = append(matchingPatterns, strings.Join(patternParts, "."))
 	}
 
 	return
