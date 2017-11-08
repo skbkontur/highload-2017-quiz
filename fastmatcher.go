@@ -171,6 +171,7 @@ func (pl *prefixList) Add(pat string) {
 		prevNodes = curNodes
 	}
 
+	// крайне не эффективно (порождает одинаковые префиксы). но да это и не продакшен код.
 	pl.lst = append(pl.lst, prevNodes...)
 }
 
@@ -248,6 +249,7 @@ func (pl *prefixList) Find(name string) (patternNames []string) {
 	}
 
 	if len(names) > 0 {
+		// из-за публичного API приходится костылить вот такие костыли...
 		patternNames = append(patternNames, names...)
 	}
 
