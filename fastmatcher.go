@@ -19,6 +19,21 @@ type FastPatternMatcher struct {
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	p.AllowedPatterns = allowedPatterns
     p.CachePatterns = make(map[string]*regexp.Regexp)
+
+    for _, pattern := range p.AllowedPatterns {
+        patternParts := strings.Split(pattern, ".")
+
+        for _, part := range patternParts {
+            regexPart := "^" + part + "$"
+            regexPart = strings.Replace(regexPart, "*", ".*", -1)
+            regexPart = strings.Replace(regexPart, "{", "(", -1)
+            regexPart = strings.Replace(regexPart, "}", ")", -1)
+            regexPart = strings.Replace(regexPart, ",", "|", -1)
+            regex := regexp.MustCompile(regexPart)
+
+            p.CachePatterns[part] = regex
+        }
+    }
 }
 
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
@@ -32,19 +47,12 @@ NEXTPATTERN:
 			continue NEXTPATTERN
 		}
 		for i, part := range patternParts {
-            var regex *regexp.Regexp
-            if cachedregex, ok := p.CachePatterns[part]; ok {
-                regex = cachedregex
-            } else {
-                regexPart := "^" + part + "$"
-                regexPart = strings.Replace(regexPart, "*", ".*", -1)
-                regexPart = strings.Replace(regexPart, "{", "(", -1)
-                regexPart = strings.Replace(regexPart, "}", ")", -1)
-                regexPart = strings.Replace(regexPart, ",", "|", -1)
-                regex = regexp.MustCompile(regexPart)
-
-                p.CachePatterns[part] = regex
+            if part == metricParts[i] {
+                continue
             }
+
+            var regex *regexp.Regexp
+            regex = p.CachePatterns[part]
 
 			if !regex.MatchString(metricParts[i]) {
 				continue NEXTPATTERN
