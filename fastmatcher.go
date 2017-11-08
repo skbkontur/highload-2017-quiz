@@ -95,21 +95,6 @@ NEXTPATTERN:
 		}
 		matchingPatterns = append(matchingPatterns, pattern.Raw)
 		continue NEXTPATTERN
-		// теперь только регекспы
-		for i, part := range pattern.Parts {
-			regexPart := "^" + part + "$"
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
-
-			regex := regexp.MustCompile(regexPart)
-
-			if !regex.MatchString(metricParts[i]) {
-				continue NEXTPATTERN
-			}
-		}
-		matchingPatterns = append(matchingPatterns, pattern.Raw)
 	}
 
 	return
