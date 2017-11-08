@@ -39,11 +39,23 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 		if pattern[len(pattern)-2:] == ".*" {
 			mp.Prefix = strings.Replace(pattern, ".*", "", -1)
 		}
-		mp.Parts = strings.Split(pattern, ".")
-		mp.Len = len(mp.Parts)
-		if !strings.Contains(pattern, "*") {
-			mp.Strict = true
-		} else {
+		parts := strings.Split(pattern, ".")
+		mp.Len = len(parts)
+		mp.Strict = true
+		for _, part := range parts {
+			if part == "*" {
+				mp.Strict = false
+				mp.Parts = append(mp.Parts, part)
+				continue
+			}
+			if strings.Contains(part, "*") {
+				mp.Strict = false
+				mp.Parts = append(mp.Parts, "*")
+				continue
+			}
+			mp.Parts = append(mp.Parts, part)
+		}
+		if !mp.Strict {
 			regexPart := "^" + pattern + "$"
 			regexPart = strings.Replace(regexPart, "*", ".*", -1)
 			regex := regexp.MustCompile(regexPart)
@@ -84,7 +96,6 @@ NEXTPATTERN:
 		if pattern.Strict {
 			continue NEXTPATTERN
 		}
-
 		// если требовался префикс
 		if pattern.Prefix != "" {
 			if strings.Contains(metricName, pattern.Prefix) {
@@ -94,19 +105,14 @@ NEXTPATTERN:
 				continue NEXTPATTERN
 			}
 		}
+
 		// проверим части без регекспов
 		for i, part := range pattern.Parts {
-			if part == "*" {
-				continue
+			if part != "*" && part != metricParts[i] {
+				continue NEXTPATTERN
 			}
-			if part == metricParts[i] {
-				continue
-			}
-			if strings.Contains(part, "*") {
-				continue
-			}
-			continue NEXTPATTERN
 		}
+		// если был регекс
 		if !pattern.Strict {
 			if !pattern.Regexp.MatchString(metricName) {
 				continue NEXTPATTERN
@@ -115,6 +121,5 @@ NEXTPATTERN:
 		matchingPatterns = append(matchingPatterns, pattern.Raw)
 		continue NEXTPATTERN
 	}
-
 	return
 }
