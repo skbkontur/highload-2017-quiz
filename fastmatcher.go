@@ -36,16 +36,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 	for i, pattern := range allowedPatterns {
 		str := "^"
 		for j, part := range strings.Split(pattern, ".") {
-			regexPart := part
-			regexPart = strings.Replace(regexPart, "*", ".*", -1)
-			regexPart = strings.Replace(regexPart, "{", "(", -1)
-			regexPart = strings.Replace(regexPart, "}", ")", -1)
-			regexPart = strings.Replace(regexPart, ",", "|", -1)
-
-			inner := regexPart
-
-			regexPart = "^" + regexPart + "$"
-
 			pp := Part{
 				Part: part,
 			}
@@ -82,9 +72,9 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 			p.P[i].Parts = append(p.P[i].Parts, pp)
 
 			if j != 0 {
-				str += `\.` + inner
+				str += `\.` + part
 			} else {
-				str += inner
+				str += part
 			}
 
 		}
@@ -101,7 +91,6 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
 	metricParts := strings.Split(metricName, ".")
 	matchingPatterns := make([]string, 0, len(p.P))
-	//l := len(metricParts)
 
 	for _, pt := range p.P {
 		if pt.Len != len(metricParts) {
