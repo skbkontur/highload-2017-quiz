@@ -63,12 +63,11 @@ NEXTPATTERN:
 		}
 
 		// если требовался префикс
-		if pattern.Prefix != "" && strings.Contains(metricName, pattern.Prefix) {
-			matchingPatterns = append(matchingPatterns, pattern.Raw)
-			continue NEXTPATTERN
-		} else {
-			// если же требовали префикс а не нашли
-			if pattern.Prefix != "" {
+		if pattern.Prefix != "" {
+			if strings.Contains(metricName, pattern.Prefix) {
+				matchingPatterns = append(matchingPatterns, pattern.Raw)
+				continue NEXTPATTERN
+			} else {
 				continue NEXTPATTERN
 			}
 		}
