@@ -177,6 +177,8 @@ func (pl *prefixList) Add(pat string) {
 }
 
 func (pl *prefixList) checkPartWithNode(part []byte, node *prefixListNode) bool {
+	// нет времени оптимизить XD
+
 	// Simple [{anyPref:false, anySuf:false, pref:Simple, inf:
 	if !node.anyPrefix && !node.anySuffix && len(node.infix) == 0 && bytes.Equal(node.prefix, part) {
 		return true
