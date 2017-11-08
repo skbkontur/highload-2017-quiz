@@ -32,8 +32,6 @@ type (
 type (
 	FastPatternMatcher struct {
 		tree *prefixList
-
-		AllowedPatterns []Pattern
 	}
 )
 
@@ -264,7 +262,6 @@ func (pl *prefixList) Find(name string) (patternNames []string) {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.AllowedPatterns = make([]Pattern, len(allowedPatterns))
 	p.tree = MakePrefixList()
 
 	for _, pat := range allowedPatterns {
