@@ -22,7 +22,7 @@ type Part struct {
 
 // FastPatternMatcher implements high-performance Graphite metric filtering
 type FastPatternMatcher struct {
-	P []Pattern
+	Patterns []Pattern
 }
 
 // InitPatterns accepts allowed patterns in Graphite format, e.g.
@@ -31,11 +31,10 @@ type FastPatternMatcher struct {
 //   metric.name.wild*card
 //   metric.name.{one,two}.maybe.longer
 func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
-	p.P = make([]Pattern, len(allowedPatterns))
+	p.Patterns = make([]Pattern, len(allowedPatterns))
 
 	for i, pattern := range allowedPatterns {
-		str := "^"
-		for j, part := range strings.Split(pattern, ".") {
+		for _, part := range strings.Split(pattern, ".") {
 			pp := Part{
 				Part: part,
 			}
@@ -45,18 +44,18 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 				raw = strings.Replace(raw, "}", ",", -1)
 
 				pparts := strings.Split(raw, ",")
-				ll := len(pparts)
+				ln := len(pparts)
 
 				if strings.Index(pp.Part, "{") != 0 {
 					pp.Prefix = strings.Replace(pparts[0], "*", "", -1)
 					pparts = pparts[1:]
 				}
 
-				ll = len(pparts)
+				ln = len(pparts)
 
-				if strings.Index(pp.Part, "}") != ll-1 {
-					pp.Sufix = strings.Replace(pparts[ll-1], "*", "", -1)
-					pparts = pparts[:ll-1]
+				if strings.Index(pp.Part, "}") != ln-1 {
+					pp.Sufix = strings.Replace(pparts[ln-1], "*", "", -1)
+					pparts = pparts[:ln-1]
 				}
 
 				if pparts[0] == "" {
@@ -69,30 +68,26 @@ func (p *FastPatternMatcher) InitPatterns(allowedPatterns []string) {
 			pp.HasStart = strings.Contains(pp.Part, "*")
 			pp.ClearPart = strings.Replace(pp.Part, "*", "", -1)
 
-			p.P[i].Parts = append(p.P[i].Parts, pp)
-
-			if j != 0 {
-				str += `\.` + part
-			} else {
-				str += part
-			}
-
+			p.Patterns[i].Parts = append(p.Patterns[i].Parts, pp)
 		}
 
-		str += "$"
-
-		p.P[i].Len = len(p.P[i].Parts)
-		p.P[i].Full = pattern
-		p.P[i].Prefix = p.P[i].Parts[0]
+		p.Patterns[i].Len = len(p.Patterns[i].Parts)
+		p.Patterns[i].Full = pattern
+		p.Patterns[i].Prefix = p.Patterns[i].Parts[0]
 	}
 }
 
+var (
+	metricParts      = make([]string, 0, 4)
+	matchingPatterns = make([]string, 0, 10)
+)
+
 // DetectMatchingPatterns returns a list of allowed patterns that match given metric
 func (p *FastPatternMatcher) DetectMatchingPatterns(metricName string) []string {
-	metricParts := strings.Split(metricName, ".")
-	matchingPatterns := make([]string, 0, len(p.P))
+	metricParts = strings.Split(metricName, ".")
+	matchingPatterns = []string{}
 
-	for _, pt := range p.P {
+	for _, pt := range p.Patterns {
 		if pt.Len != len(metricParts) {
 			continue
 		}
