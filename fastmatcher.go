@@ -72,6 +72,29 @@ NEXTPATTERN:
 				continue NEXTPATTERN
 			}
 		}
+		for i, part := range pattern.Parts {
+			if part == "*" {
+				continue
+			}
+			if part == metricParts[i] {
+				continue
+			}
+			// регулярка
+			if strings.Contains(part, "{") || strings.Contains(part, "*") {
+				regexPart := "^" + part + "$"
+				regexPart = strings.Replace(regexPart, "*", ".*", -1)
+				regexPart = strings.Replace(regexPart, "{", "(", -1)
+				regexPart = strings.Replace(regexPart, "}", ")", -1)
+				regexPart = strings.Replace(regexPart, ",", "|", -1)
+				regex := regexp.MustCompile(regexPart)
+				if regex.MatchString(metricParts[i]) {
+					continue
+				}
+			}
+			continue NEXTPATTERN
+		}
+		matchingPatterns = append(matchingPatterns, pattern.Raw)
+		continue NEXTPATTERN
 		// теперь только регекспы
 		for i, part := range pattern.Parts {
 			regexPart := "^" + part + "$"
